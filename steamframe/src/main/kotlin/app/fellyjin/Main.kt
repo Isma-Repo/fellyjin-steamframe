@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
+import java.nio.file.attribute.PosixFilePermissions
 import javax.imageio.ImageIO
 import kotlin.system.exitProcess
 
@@ -67,6 +68,12 @@ private fun setupLogging(): Path? = runCatching {
 	val dir = base.resolve("fellyjin-steamframe").also(Files::createDirectories)
 	val log = dir.resolve("fellyjin.log")
 	if (Files.exists(log)) Files.move(log, dir.resolve("fellyjin.log.1"), StandardCopyOption.REPLACE_EXISTING)
+	// The log names what you watched: keep it (and its directory) private to this user
+	runCatching {
+		Files.setPosixFilePermissions(dir, PosixFilePermissions.fromString("rwx------"))
+		Files.createFile(log, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")))
+		Files.setPosixFilePermissions(dir.resolve("fellyjin.log.1"), PosixFilePermissions.fromString("rw-------"))
+	}
 	System.setProperty("org.slf4j.simpleLogger.logFile", log.toString())
 	System.setProperty("org.slf4j.simpleLogger.showDateTime", "true")
 	System.setProperty("org.slf4j.simpleLogger.dateTimeFormat", "HH:mm:ss.SSS")
