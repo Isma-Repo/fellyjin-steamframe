@@ -155,6 +155,8 @@ class StreamResolver(private val api: ApiClient) {
 				val deliveryUrl = stream.deliveryUrl ?: return@mapNotNull null
 				val subtitleUrl = if (stream.isExternalUrl == true) deliveryUrl
 				else api.createUrl(deliveryUrl, ignorePathParameters = true).withAccessToken()
+				// The server dictates this url and mpv opens whatever protocol it is given (file://, smb://, ...)
+				if (!subtitleUrl.isWebUrl()) return@mapNotNull null
 				ExternalSubtitle(subtitleUrl, stream.displayTitle ?: stream.title, stream.language, selected = stream.index == tracks.subtitleStreamIndex)
 			}
 
@@ -211,6 +213,9 @@ class StreamResolver(private val api: ApiClient) {
 			VideoRangeType.DOVI_WITH_ELHDR10_PLUS,
 		).joinToString("|") { it.serialName }
 	}
+
+	private fun String.isWebUrl(): Boolean =
+		startsWith("http://", ignoreCase = true) || startsWith("https://", ignoreCase = true)
 
 	/** mpv does not send the Jellyfin authorization header, so authenticate with the token in the url instead. */
 	private fun String.withAccessToken(): String {

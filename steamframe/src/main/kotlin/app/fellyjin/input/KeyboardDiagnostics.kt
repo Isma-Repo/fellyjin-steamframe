@@ -38,8 +38,10 @@ object KeyboardDiagnostics {
 
 		Toolkit.getDefaultToolkit().addAWTEventListener({ event ->
 			if (event is KeyEvent && event.id == KeyEvent.KEY_PRESSED) {
-				val key = KeyEvent.getKeyText(event.keyCode)
-				if (_status.value.keyCount < 40) logger.info("Key pressed: $key")
+				// Never log or show what was typed: this listener also sees usernames and passwords. Only navigation and
+				// function keys are named, printable characters are only counted.
+				val printable = event.keyChar != KeyEvent.CHAR_UNDEFINED && !event.keyChar.isISOControl()
+				val key = if (printable) "character key" else KeyEvent.getKeyText(event.keyCode)
 				_status.update { it.copy(lastKey = key, keyCount = it.keyCount + 1) }
 			}
 		}, AWTEvent.KEY_EVENT_MASK)
