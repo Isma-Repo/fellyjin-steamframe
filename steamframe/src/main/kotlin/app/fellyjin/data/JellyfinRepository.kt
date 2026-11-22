@@ -19,6 +19,7 @@ import org.jellyfin.sdk.discovery.RecommendedServerInfo
 import org.jellyfin.sdk.discovery.RecommendedServerInfoScore
 import org.jellyfin.sdk.model.ClientInfo
 import org.jellyfin.sdk.model.DeviceInfo
+import org.jellyfin.sdk.model.ServerVersion
 import org.jellyfin.sdk.model.api.ServerDiscoveryInfo
 import org.jellyfin.sdk.model.api.AuthenticationResult
 import org.jellyfin.sdk.model.api.BaseItemDto
@@ -40,6 +41,10 @@ class JellyfinRepository(private val configStore: ConfigStore) {
 	private val jellyfin = createJellyfin {
 		clientInfo = ClientInfo(name = BuildInfo.CLIENT_NAME, version = BuildInfo.VERSION)
 		deviceInfo = DeviceInfo(id = configStore.current.deviceId, name = deviceName())
+		// The SDK itself wants a server 12.0+, and rates anything older "unsupported" (OK), which server discovery
+		// rejects (it needs GOOD or better). Accept the current stable servers (10.11, the version Jellyfin for
+		// Android TV supports); those are then rated GOOD with only an "outdated" notice.
+		minimumServerVersion = MINIMUM_SERVER_VERSION
 	}
 
 	val api: ApiClient = jellyfin.createApi()
@@ -227,6 +232,9 @@ class JellyfinRepository(private val configStore: ConfigStore) {
 			}
 
 	private companion object {
+		/** Oldest stable Jellyfin server accepted, the same minimum as Jellyfin for Android TV. */
+		val MINIMUM_SERVER_VERSION = ServerVersion(10, 11, 0)
+
 		fun deviceName(): String = runCatching { InetAddress.getLocalHost().hostName }.getOrNull()
 			?.takeIf { it.isNotBlank() && it != "localhost" }
 			?: "Steam Frame"

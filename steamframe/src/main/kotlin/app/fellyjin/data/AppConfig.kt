@@ -122,9 +122,16 @@ class ConfigStore(
 	private fun save(config: AppConfig) {
 		try {
 			file.parent.createDirectories()
+			runCatching { Files.setPosixFilePermissions(file.parent, PosixFilePermissions.fromString("rwx------")) }
 			val tmp = file.resolveSibling("${file.fileName}.tmp")
+			// The token must never be readable by others, not even briefly: create the file private before writing
+			Files.deleteIfExists(tmp)
+			try {
+				Files.createFile(tmp, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")))
+			} catch (_: UnsupportedOperationException) {
+				// Not a POSIX file system (development on Windows)
+			}
 			tmp.writeText(json.encodeToString(config))
-			runCatching { Files.setPosixFilePermissions(tmp, PosixFilePermissions.fromString("rw-------")) }
 			Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
 		} catch (err: Exception) {
 			logger.error("Unable to write config to $file", err)
